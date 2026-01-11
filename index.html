@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Trạng Thái</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        header h1 {
+            font-size: 2em;
+            font-weight: 600;
+        }
+
+        #user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #user-role {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 2px solid #e9ecef;
+        }
+
+        .status-card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .status-display {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            min-height: 100px;
+            border-left: 4px solid #667eea;
+            margin-bottom: 20px;
+        }
+
+        .status-display p {
+            font-size: 1.1em;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .status-display .loading {
+            color: #999;
+            font-style: italic;
+        }
+
+        .status-meta {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .status-meta p {
+            margin: 0;
+        }
+
+        .admin-panel {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .admin-panel h2 {
+            color: #856404;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        #update-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        #status-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        #status-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            right: 20px;
+            top: 15px;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .modal-content form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .modal-content input {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .modal-content input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .error-message {
+            color: #dc3545;
+            margin-top: 10px;
+            font-size: 0.9em;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+
+            .main-content {
+                padding: 20px;
+            }
+
+            .status-meta {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Quản Lý Trạng Thái</h1>
+            <div id="user-info">
+                <span id="user-role">Khách</span>
+                <button id="login-btn" class="btn btn-secondary">Đăng nhập Admin</button>
+                <button id="logout-btn" class="btn btn-danger" style="display: none;">Đăng xuất</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- Phần hiển thị trạng thái -->
+            <div class="status-card">
+                <h2>Trạng Thái Hiện Tại</h2>
+                <div id="status-display" class="status-display">
+                    <p class="loading">Đang tải...</p>
+                </div>
+                <div class="status-meta">
+                    <p id="last-updated">Cập nhật lần cuối: -</p>
+                    <p id="updated-by">Người cập nhật: -</p>
+                </div>
+            </div>
+
+            <!-- Phần cập nhật (chỉ admin) -->
+            <div id="admin-panel" class="admin-panel" style="display: none;">
+                <h2>Cập Nhật Trạng Thái</h2>
+                <form id="update-form">
+                    <textarea 
+                        id="status-input" 
+                        placeholder="Nhập trạng thái mới..."
+                        rows="5"
+                        required
+                    ></textarea>
+                    <button type="submit" class="btn btn-primary">Lưu Trạng Thái</button>
+                </form>
+            </div>
+
+            <!-- Form đăng nhập -->
+            <div id="login-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2>Đăng Nhập Admin</h2>
+                    <form id="login-form">
+                        <input 
+                            type="password" 
+                            id="admin-password" 
+                            placeholder="Nhập mật khẩu admin"
+                            required
+                        >
+                        <button type="submit" class="btn btn-primary">Đăng nhập</button>
+                    </form>
+                    <p id="login-error" class="error-message"></p>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>&copy; 2024 - Trang Quản Lý Trạng Thái</p>
+        </footer>
+    </div>
+
+    <script>
+        // Mật khẩu admin (có thể thay đổi)
+        const ADMIN_PASSWORD = 'admin123';
+        
+        // State management
+        let isAdmin = false;
+        const STORAGE_KEY = 'app_status';
+        const ADMIN_KEY = 'is_admin';
+
+        // DOM Elements
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const userRole = document.getElementById('user-role');
+        const adminPanel = document.getElementById('admin-panel');
+        const loginModal = document.getElementById('login-modal');
+        const loginForm = document.getElementById('login-form');
+        const updateForm = document.getElementById('update-form');
+        const statusDisplay = document.getElementById('status-display');
+        const statusInput = document.getElementById('status-input');
+        const lastUpdated = document.getElementById('last-updated');
+        const updatedBy = document.getElementById('updated-by');
+        const loginError = document.getElementById('login-error');
+        const closeModal = document.querySelector('.close');
+
+        // Load status on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Kiểm tra nếu đã đăng nhập admin trước đó
+            const savedAdmin = localStorage.getItem(ADMIN_KEY);
+            if (savedAdmin === 'true') {
+                isAdmin = true;
+                updateUI();
+            }
+            
+            loadStatus();
+        });
+
+        // Event Listeners
+        loginBtn.addEventListener('click', () => {
+            loginModal.style.display = 'block';
+        });
+
+        closeModal.addEventListener('click', () => {
+            loginModal.style.display = 'none';
+            loginError.classList.remove('show');
+            loginError.textContent = '';
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === loginModal) {
+                loginModal.style.display = 'none';
+                loginError.classList.remove('show');
+                loginError.textContent = '';
+            }
+        });
+
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const password = document.getElementById('admin-password').value;
+            checkAdmin(password);
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            isAdmin = false;
+            localStorage.removeItem(ADMIN_KEY);
+            updateUI();
+            loginModal.style.display = 'none';
+        });
+
+        updateForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const status = statusInput.value.trim();
+            if (status) {
+                updateStatus(status);
+            }
+        });
+
+        // Functions
+        function loadStatus() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    displayStatus(data);
+                } else {
+                    // Trạng thái mặc định
+                    const defaultData = {
+                        status: 'Chưa có trạng thái',
+                        lastUpdated: new Date().toISOString(),
+                        updatedBy: 'System'
+                    };
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultData));
+                    displayStatus(defaultData);
+                }
+            } catch (error) {
+                console.error('Lỗi tải trạng thái:', error);
+                statusDisplay.innerHTML = '<p class="error">Không thể tải trạng thái</p>';
+            }
+        }
+
+        function displayStatus(data) {
+            statusDisplay.innerHTML = `<p>${escapeHtml(data.status)}</p>`;
+            
+            const date = new Date(data.lastUpdated);
+            lastUpdated.textContent = `Cập nhật lần cuối: ${formatDate(date)}`;
+            updatedBy.textContent = `Người cập nhật: ${data.updatedBy}`;
+            
+            // Nếu là admin, cập nhật input
+            if (isAdmin && statusInput) {
+                statusInput.value = data.status;
+            }
+        }
+
+        function checkAdmin(password) {
+            if (password === ADMIN_PASSWORD) {
+                isAdmin = true;
+                localStorage.setItem(ADMIN_KEY, 'true');
+                updateUI();
+                loginModal.style.display = 'none';
+                document.getElementById('admin-password').value = '';
+                loginError.classList.remove('show');
+                loginError.textContent = '';
+            } else {
+                loginError.textContent = 'Mật khẩu không đúng!';
+                loginError.classList.add('show');
+            }
+        }
+
+        function updateStatus(status) {
+            if (!isAdmin) {
+                alert('Vui lòng đăng nhập lại!');
+                isAdmin = false;
+                updateUI();
+                return;
+            }
+
+            try {
+                const statusData = {
+                    status: status,
+                    lastUpdated: new Date().toISOString(),
+                    updatedBy: 'Admin'
+                };
+
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(statusData));
+                displayStatus(statusData);
+                showNotification('Cập nhật trạng thái thành công!', 'success');
+            } catch (error) {
+                console.error('Lỗi cập nhật trạng thái:', error);
+                showNotification('Có lỗi xảy ra khi cập nhật!', 'error');
+            }
+        }
+
+        function updateUI() {
+            if (isAdmin) {
+                userRole.textContent = '👑 Admin';
+                userRole.style.background = 'rgba(255, 215, 0, 0.3)';
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'inline-block';
+                adminPanel.style.display = 'block';
+            } else {
+                userRole.textContent = '👤 Khách';
+                userRole.style.background = 'rgba(255, 255, 255, 0.2)';
+                loginBtn.style.display = 'inline-block';
+                logoutBtn.style.display = 'none';
+                adminPanel.style.display = 'none';
+            }
+        }
+
+        function formatDate(date) {
+            const options = {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            };
+            return date.toLocaleString('vi-VN', options);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#28a745' : '#dc3545'};
+                color: white;
+                padding: 15px 25px;
+                border-radius: 8px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
