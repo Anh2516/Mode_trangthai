@@ -2,6 +2,9 @@
   "name": "trang-thai-web",
   "version": "1.0.0",
   "description": "Trang web quản lý trạng thái",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "echo 'No build step needed'"
   }

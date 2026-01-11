@@ -366,8 +366,11 @@
         
         // State management
         let isAdmin = false;
-        const STORAGE_KEY = 'app_status';
         const ADMIN_KEY = 'is_admin';
+        let adminPassword = ''; // Lưu password để dùng cho API calls
+        
+        // API Base URL - tự động detect
+        const API_BASE = window.location.origin + '/api';
 
         // DOM Elements
         const loginBtn = document.getElementById('login-btn');
@@ -388,12 +391,16 @@
         document.addEventListener('DOMContentLoaded', () => {
             // Kiểm tra nếu đã đăng nhập admin trước đó
             const savedAdmin = localStorage.getItem(ADMIN_KEY);
-            if (savedAdmin === 'true') {
+            const savedPassword = sessionStorage.getItem('adminPassword');
+            if (savedAdmin === 'true' && savedPassword) {
                 isAdmin = true;
+                adminPassword = savedPassword;
                 updateUI();
             }
             
             loadStatus();
+            // Auto refresh mỗi 5 giây
+            setInterval(loadStatus, 5000);
         });
 
         // Event Listeners
@@ -423,7 +430,9 @@
 
         logoutBtn.addEventListener('click', () => {
             isAdmin = false;
+            adminPassword = '';
             localStorage.removeItem(ADMIN_KEY);
+            sessionStorage.removeItem('adminPassword');
             updateUI();
             loginModal.style.display = 'none';
         });
@@ -437,25 +446,18 @@
         });
 
         // Functions
-        function loadStatus() {
+        async function loadStatus() {
             try {
-                const saved = localStorage.getItem(STORAGE_KEY);
-                if (saved) {
-                    const data = JSON.parse(saved);
+                const response = await fetch(`${API_BASE}/status`);
+                if (response.ok) {
+                    const data = await response.json();
                     displayStatus(data);
                 } else {
-                    // Trạng thái mặc định
-                    const defaultData = {
-                        status: 'Chưa có trạng thái',
-                        lastUpdated: new Date().toISOString(),
-                        updatedBy: 'System'
-                    };
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultData));
-                    displayStatus(defaultData);
+                    throw new Error('Lỗi tải trạng thái');
                 }
             } catch (error) {
                 console.error('Lỗi tải trạng thái:', error);
-                statusDisplay.innerHTML = '<p class="error">Không thể tải trạng thái</p>';
+                statusDisplay.innerHTML = '<p class="error">Không thể tải trạng thái. Đang thử lại...</p>';
             }
         }
 
@@ -472,23 +474,41 @@
             }
         }
 
-        function checkAdmin(password) {
-            if (password === ADMIN_PASSWORD) {
-                isAdmin = true;
-                localStorage.setItem(ADMIN_KEY, 'true');
-                updateUI();
-                loginModal.style.display = 'none';
-                document.getElementById('admin-password').value = '';
-                loginError.classList.remove('show');
-                loginError.textContent = '';
-            } else {
-                loginError.textContent = 'Mật khẩu không đúng!';
+        async function checkAdmin(password) {
+            try {
+                const response = await fetch(`${API_BASE}/check-admin`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.isAdmin) {
+                    isAdmin = true;
+                    adminPassword = password;
+                    localStorage.setItem(ADMIN_KEY, 'true');
+                    sessionStorage.setItem('adminPassword', password);
+                    updateUI();
+                    loginModal.style.display = 'none';
+                    document.getElementById('admin-password').value = '';
+                    loginError.classList.remove('show');
+                    loginError.textContent = '';
+                } else {
+                    loginError.textContent = 'Mật khẩu không đúng!';
+                    loginError.classList.add('show');
+                }
+            } catch (error) {
+                console.error('Lỗi kiểm tra admin:', error);
+                loginError.textContent = 'Có lỗi xảy ra!';
                 loginError.classList.add('show');
             }
         }
 
-        function updateStatus(status) {
-            if (!isAdmin) {
+        async function updateStatus(status) {
+            if (!isAdmin || !adminPassword) {
                 alert('Vui lòng đăng nhập lại!');
                 isAdmin = false;
                 updateUI();
@@ -496,15 +516,23 @@
             }
 
             try {
-                const statusData = {
-                    status: status,
-                    lastUpdated: new Date().toISOString(),
-                    updatedBy: 'Admin'
-                };
+                const response = await fetch(`${API_BASE}/status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-password': adminPassword
+                    },
+                    body: JSON.stringify({ status })
+                });
 
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(statusData));
-                displayStatus(statusData);
-                showNotification('Cập nhật trạng thái thành công!', 'success');
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    displayStatus(data.data);
+                    showNotification('Cập nhật trạng thái thành công!', 'success');
+                } else {
+                    throw new Error(data.error || 'Lỗi cập nhật');
+                }
             } catch (error) {
                 console.error('Lỗi cập nhật trạng thái:', error);
                 showNotification('Có lỗi xảy ra khi cập nhật!', 'error');
